@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1c1510;
+    --surface: #251d16;
+    --surface2: #2e2318;
+    --border: #4a3828;
+    --accent: #c8872a;
+    --accent2: #8b3a1f;
+    --text: #f2e8d9;
+    --muted: #9a7d62;
+    --correct: #6a9e5a;
+    --wrong: #b84c32;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lora', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(200,135,42,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(139,58,31,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 720px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(200,135,42,0.25);
+  }
+  .logo span { color: #d4a96a; }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Lora', serif;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #1c1510;
+  }
+  .btn-primary:hover { background: #b8761f; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(200,135,42,0.35); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-danger {
+    background: rgba(184,76,50,0.15);
+    color: var(--wrong);
+    border: 1.5px solid rgba(184,76,50,0.3);
+  }
+  .btn-danger:hover { background: rgba(184,76,50,0.25); }
+
+  .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+  }
+  .panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+  .panel-body { padding: 20px; }
+
+  /* ── QUIZ SET LOADER ── */
+  #loaderSection {
+    display: block;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .drop-zone:hover, .drop-zone.over {
+    border-color: var(--accent);
+    background: rgba(200,135,42,0.05);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .drop-label { font-size: 0.95rem; color: var(--muted); }
+  .drop-label strong { color: var(--accent); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-bottom: 20px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .preset-card {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .preset-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(200,135,42,0.15);
+  }
+  .preset-card .preset-icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .preset-card .preset-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+  .preset-card .preset-meta { font-size: 0.75rem; color: var(--muted); }
+
+  .format-hint {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(200,135,42,0.06);
+    border: 1px solid rgba(200,135,42,0.2);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .format-hint strong { color: var(--accent); display: block; margin-bottom: 6px; font-family: 'Lora', serif; }
+
+  /* ── QUIZ SCREEN ── */
+  #quizSection { display: none; }
+
+  .quiz-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .quiz-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+  }
+
+  .quiz-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #8b5a2b);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .question-num {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .question-text {
+    font-size: 1.1rem;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .options-grid {
+    display: grid;
+    gap: 10px;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+    color: var(--text);
+    font-family: 'Lora', serif;
+    font-size: 0.95rem;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(200,135,42,0.07);
+  }
+  .option-btn .opt-label {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .option-btn:hover:not(:disabled) .opt-label {
+    background: var(--accent);
+    color: #1c1510;
+  }
+  .option-btn.correct {
+    border-color: var(--correct);
+    background: rgba(106,158,90,0.1);
+  }
+  .option-btn.correct .opt-label {
+    background: var(--correct);
+    color: #1c1510;
+  }
+  .option-btn.wrong {
+    border-color: var(--wrong);
+    background: rgba(184,76,50,0.1);
+  }
+  .option-btn.wrong .opt-label {
+    background: var(--wrong);
+    color: #f2e8d9;
+  }
+  .option-btn:disabled { cursor: default; }
+
+  .feedback-box {
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-top: 16px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .feedback-box.correct {
+    background: rgba(106,158,90,0.12);
+    border: 1px solid rgba(106,158,90,0.35);
+    color: var(--correct);
+  }
+  .feedback-box.wrong {
+    background: rgba(184,76,50,0.12);
+    border: 1px solid rgba(184,76,50,0.35);
+    color: #d4724a;
+  }
+
+  .quiz-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* ── RESULT SCREEN ── */
+  #resultSection { display: none; }
+
+  .score-display {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .score-big {
+    font-family: 'Playfair Display', serif;
+    font-size: 5rem;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent), #8b5a2b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .score-label { color: var(--muted); font-size: 0.9rem; }
+  .score-grade {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 24px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+  }
+
+  .results-breakdown {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-num.green { color: var(--correct); }
+  .stat-num.red { color: var(--wrong); }
+  .stat-num.yellow { color: var(--accent); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); }
+
+  .review-list { display: grid; gap: 12px; margin-top: 16px; }
+  .review-item {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 4px solid var(--border);
+  }
+  .review-item.correct { border-color: var(--correct); }
+  .review-item.wrong { border-color: var(--accent2); }
+  .review-q { font-size: 0.9rem; font-weight: 500; margin-bottom: 6px; }
+  .review-a { font-size: 0.8rem; color: var(--muted); }
+  .review-a span { font-family: 'JetBrains Mono', monospace; }
+  .review-a.correct-answer { color: var(--correct); }
+  .review-a.wrong-answer { color: #d4724a; }
+
+  /* ── PASTE AREA ── */
+  .paste-area {
+    width: 100%;
+    min-height: 120px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  .paste-area:focus { border-color: var(--accent); }
+  /* ── NOTIFICATION ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1.5px solid var(--accent);
+    color: var(--text);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 0.875rem;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    font-family: 'Lora', serif;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── SETTINGS ── */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 0.9rem; }
+  .settings-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  .toggle {
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { transform: translateX(20px); }
+
+  select.setting-select {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-family: 'Lora', serif;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+  }
+  select.setting-select:focus { border-color: var(--accent); }
+
+  /* Misc */
+  .text-muted { color: var(--muted); }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 480px) {
+    .results-breakdown { grid-template-columns: repeat(3, 1fr); }
+    .preset-grid { grid-template-columns: 1fr 1fr; }
+    .score-big { font-size: 3.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">Quiz<span>Forge</span></div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" onclick="showLoader()">⟳ New Quiz</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleSettings()">⚙ Settings</button>
+    </div>
+  </header>
+
+  <!-- SETTINGS PANEL -->
+  <div class="panel" id="settingsPanel" style="display:none;">
+    <div class="panel-header"><span class="panel-title">⚙ Settings</span></div>
+    <div class="panel-body">
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Shuffle Questions</div>
+          <div class="settings-sub">Randomize question order each attempt</div>
+        </div>
+        <button class="toggle on" id="toggleShuffle" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Show Explanation</div>
+          <div class="settings-sub">Display feedback after each answer</div>
+        </div>
+        <button class="toggle on" id="toggleExplain" onclick="this.classList.toggle('on')"></button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Question Limit</div>
+          <div class="settings-sub">Max questions per session (0 = all)</div>
+        </div>
+        <select class="setting-select" id="questionLimit">
+          <option value="0">All</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER SECTION -->
+  <div id="loaderSection">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">📂 Load Quiz Set</span></div>
+      <div class="panel-body">
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".json,.txt,.csv" onchange="handleFileUpload(this)">
+          <div class="drop-icon">📄</div>
+          <div class="drop-label">Drop <strong>.json</strong>, <strong>.txt</strong>, or <strong>.csv</strong> file here<br>or click to browse</div>
+        </div>
+
+        <div class="divider">or paste JSON directly</div>
+
+        <textarea class="paste-area" id="pasteArea" placeholder='[{"question": "...", "options": ["A","B","C","D"], "answer": 0}]'></textarea>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="loadFromPaste()">⚡ Load from Paste</button>
+
+        <div class="format-hint">
+          <strong>📋 JSON Format</strong>
+          [{"question":"What is 2+2?","options":["3","4","5","6"],"answer":1,"explanation":"2+2=4"}]<br><br>
+          <strong>CSV Format</strong>
+          question,optA,optB,optC,optD,answer(0-3),explanation
+        </div>
+      </div>
+    </div>
+
+    <div class="divider">or choose a built-in set</div>
+
+    <div class="preset-grid">
+      <div class="preset-card" onclick="loadPreset('canada')">
+        <div class="preset-icon">🍁</div>
+        <div class="preset-name">Canadian Citizenship</div>
+        <div class="preset-meta">15 questions · Test Prep</div>
+      </div>
+      <div class="preset-card" onclick="loadPreset('pm')">
+        <div class="preset-icon">📊</div>
+        <div class="preset-name">Project Management</div>
+        <div class="preset-meta">10 questions · PMP Prep</div>
+      </div>
+      <div class="preset-card" onclick="loadPreset('ot')">
+        <div class="preset-icon">🏭</div>
+        <div class="preset-name">OT / Industrial</div>
+        <div class="preset-meta">10 questions · SCADA/MES</div>
+      </div>
+      <div class="preset-card" onclick="loadPreset('general')">
+        <div class="preset-icon">🌍</div>
+        <div class="preset-name">General Knowledge</div>
+        <div class="preset-meta">10 questions · Mixed</div>
+      </div>
+      <div class="preset-card" onclick="loadPreset('tech')">
+        <div class="preset-icon">💻</div>
+        <div class="preset-name">Technology</div>
+        <div class="preset-meta">10 questions · Cloud/AI</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ SECTION -->
+  <div id="quizSection">
+    <div class="quiz-meta">
+      <div class="quiz-title" id="quizTitleDisplay">Quiz</div>
+      <div class="quiz-counter" id="quizCounter">1 / 10</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="question-card">
+      <div class="question-num" id="questionNum">QUESTION 01</div>
+      <div class="question-text" id="questionText"></div>
+      <div class="options-grid" id="optionsGrid"></div>
+      <div class="feedback-box" id="feedbackBox"></div>
+    </div>
+
+    <div class="quiz-nav">
+      <button class="btn btn-outline" onclick="showLoader()">✕ Exit</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Next →</button>
+    </div>
+  </div>
+
+  <!-- RESULT SECTION -->
+  <div id="resultSection">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">🏁 Results</span></div>
+      <div class="panel-body">
+        <div class="score-display">
+          <div class="score-big" id="scorePct">0%</div>
+          <div class="score-label" id="scoreLabel">Score</div>
+          <div class="score-grade" id="scoreGrade"></div>
+        </div>
+        <div class="results-breakdown">
+          <div class="stat-card">
+            <div class="stat-num green" id="statCorrect">0</div>
+            <div class="stat-label">Correct</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num red" id="statWrong">0</div>
+            <div class="stat-label">Wrong</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num yellow" id="statTotal">0</div>
+            <div class="stat-label">Total</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="retryQuiz()">↺ Retry</button>
+          <button class="btn btn-outline" style="flex:1; justify-content:center;" onclick="showLoader()">+ New Set</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="reviewPanel">
+      <div class="panel-header">
+        <span class="panel-title">📝 Review</span>
+        <button class="btn btn-sm btn-outline" onclick="toggleReview()">Toggle</button>
+      </div>
+      <div class="panel-body" id="reviewBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let allQuestions = [];
+let sessionQuestions = [];
+let currentIdx = 0;
+let score = 0;
+let userAnswers = [];
+let quizTitle = 'Quiz';
+
+// ── PRESET DATA ──
+const PRESETS = {
+  pm: {
+    title: 'Project Management',
+    questions: [
+      { question: 'Which process group comes first in PMBOK?', options: ['Planning', 'Initiating', 'Executing', 'Closing'], answer: 1, explanation: 'Initiating is the first process group, where the project is formally authorized.' },
+      { question: 'What is the critical path in project scheduling?', options: ['Shortest path through the network', 'Longest path with zero float', 'Path with most resources', 'Path with highest cost'], answer: 1, explanation: 'The critical path is the longest sequence of tasks with zero float — any delay causes project delay.' },
+      { question: 'EVM: CPI > 1 means?', options: ['Behind schedule', 'Over budget', 'Under budget', 'On schedule'], answer: 2, explanation: 'CPI = EV/AC. CPI > 1 means we got more value than we spent — under budget.' },
+      { question: 'What does RACI stand for?', options: ['Responsible, Accountable, Consulted, Informed', 'Risk, Action, Cost, Issue', 'Report, Assess, Control, Implement', 'Review, Assign, Check, Integrate'], answer: 0, explanation: 'RACI is a responsibility assignment matrix used to clarify roles.' },
+      { question: 'Agile sprints are typically how long?', options: ['1 day', '1–4 weeks', '3–6 months', '1 year'], answer: 1, explanation: 'Sprints in Scrum typically last 1–4 weeks, most commonly 2 weeks.' },
+      { question: 'Which document authorizes a project?', options: ['Project Plan', 'Risk Register', 'Project Charter', 'Stakeholder Register'], answer: 2, explanation: 'The Project Charter formally authorizes the project and gives the PM authority.' },
+      { question: 'WBS stands for?', options: ['Work Breakdown Structure', 'Weekly Budget Summary', 'Work Benefit Schedule', 'Weighted Baseline Score'], answer: 0, explanation: 'WBS decomposes project deliverables into smaller, manageable components.' },
+      { question: 'Monte Carlo simulation is used in?', options: ['Scope management', 'Cost estimation', 'Risk quantitative analysis', 'Stakeholder engagement'], answer: 2, explanation: 'Monte Carlo is a statistical technique for quantitative risk analysis.' },
+      { question: 'What is scope creep?', options: ['Planned scope expansion', 'Uncontrolled scope growth', 'Scope reduction', 'Scope documentation'], answer: 1, explanation: 'Scope creep refers to uncontrolled changes or continuous growth in a project\'s scope.' },
+      { question: 'A lessons learned document is created in which process group?', options: ['Initiating', 'Planning', 'Monitoring', 'Closing'], answer: 3, explanation: 'Lessons learned are formally documented and archived during the Closing process group.' },
+    ]
+  },
+  ot: {
+    title: 'OT / Industrial Systems',
+    questions: [
+      { question: 'What does OPC-UA stand for?', options: ['Open Protocol Communication – Unified Access', 'OPC Unified Architecture', 'Operational Process Control – Universal Application', 'Open Platform Communication – Unified Automation'], answer: 1, explanation: 'OPC-UA (Unified Architecture) is a machine-to-machine communication protocol for industrial automation.' },
+      { question: 'OEE is calculated as?', options: ['Availability × Quality', 'Availability × Performance × Quality', 'Performance × Quality × Yield', 'Uptime / Planned Time'], answer: 1, explanation: 'OEE = Availability × Performance × Quality. World-class OEE is 85%+.' },
+      { question: 'In the Purdue Model, Level 2 represents?', options: ['Business Planning', 'Process Control (DCS/SCADA)', 'Field Devices', 'Supervisory Control'], answer: 3, explanation: 'Level 2 is Supervisory Control — SCADA/HMI systems that monitor and control Level 1 devices.' },
+      { question: 'ISA-95 defines standards for?', options: ['Safety instrumented systems', 'Network security', 'Enterprise-control integration', 'PLC programming'], answer: 2, explanation: 'ISA-95 provides models and terminology for integrating enterprise (ERP) and control (MES/SCADA) systems.' },
+      { question: 'MES stands for?', options: ['Manufacturing Execution System', 'Machine Efficiency Standard', 'Multi-Enterprise Software', 'Managed Environment System'], answer: 0, explanation: 'MES coordinates and optimizes production processes in real-time on the shop floor.' },
+      { question: 'What is a historian in OT context?', options: ['A data archiving system for process data', 'A SCADA display screen', 'A PLC programming tool', 'A network switch'], answer: 0, explanation: 'A historian (e.g., AVEVA Historian) stores time-series process data for analysis and reporting.' },
+      { question: 'IEC 62443 addresses?', options: ['PLC programming standards', 'OT cybersecurity', 'Industrial network cabling', 'HART protocol'], answer: 1, explanation: 'IEC 62443 is the international standard for cybersecurity in industrial automation and control systems.' },
+      { question: 'AVEVA System Platform is primarily used for?', options: ['ERP integration', 'SCADA/HMI applications', 'Document management', 'Financial reporting'], answer: 1, explanation: 'AVEVA System Platform provides a distributed SCADA/HMI development and runtime environment.' },
+      { question: 'What does SCADA stand for?', options: ['Supervisory Control and Data Acquisition', 'System Control and Data Analytics', 'Secure Control and Data Access', 'Standard Control Automation Design Application'], answer: 0, explanation: 'SCADA systems monitor and control industrial infrastructure remotely.' },
+      { question: 'Digital Twin in manufacturing refers to?', options: ['A backup PLC', 'A virtual replica of a physical asset', 'Redundant sensor systems', 'A type of industrial robot'], answer: 1, explanation: 'A digital twin is a virtual model of a physical system, updated with real-time data.' },
+    ]
+  },
+  general: {
+    title: 'General Knowledge',
+    questions: [
+      { question: 'What is the capital of Canada?', options: ['Toronto', 'Vancouver', 'Ottawa', 'Montreal'], answer: 2, explanation: 'Ottawa is the capital city of Canada, located in Ontario.' },
+      { question: 'The speed of light is approximately?', options: ['300,000 km/s', '30,000 km/s', '3,000 km/s', '3,000,000 km/s'], answer: 0, explanation: 'Light travels at approximately 299,792 km/s, roughly 300,000 km/s.' },
+      { question: 'Which planet is closest to the Sun?', options: ['Venus', 'Earth', 'Mercury', 'Mars'], answer: 2, explanation: 'Mercury is the closest planet to the Sun in our solar system.' },
+      { question: 'How many bones does an adult human body have?', options: ['196', '206', '216', '226'], answer: 1, explanation: 'An adult human body has 206 bones.' },
+      { question: 'The Mahabharata was composed by?', options: ['Valmiki', 'Tulsidas', 'Vyasa', 'Kalidasa'], answer: 2, explanation: 'The Mahabharata is attributed to the sage Vyasa (Krishna Dvaipayana).' },
+      { question: 'Mount Everest is in which mountain range?', options: ['Karakoram', 'Hindu Kush', 'Alps', 'Himalayas'], answer: 3, explanation: 'Mount Everest is part of the Himalayan mountain range on the Nepal-Tibet border.' },
+      { question: 'Which element has the symbol "Au"?', options: ['Silver', 'Aluminum', 'Gold', 'Argon'], answer: 2, explanation: 'Au comes from the Latin "Aurum", meaning Gold.' },
+      { question: 'DNA stands for?', options: ['Deoxyribonucleic Acid', 'Diribose Nucleotide Assembly', 'Dual Nucleotide Array', 'Dynamic Nuclear Acid'], answer: 0, explanation: 'DNA (Deoxyribonucleic Acid) carries genetic instructions for development and function of all life.' },
+      { question: 'Who wrote "Republic"?', options: ['Aristotle', 'Plato', 'Socrates', 'Homer'], answer: 1, explanation: 'Plato wrote "The Republic", exploring justice, the ideal state, and the philosopher-king.' },
+      { question: 'The Great Wall of China was primarily built during?', options: ['Tang Dynasty', 'Han Dynasty', 'Ming Dynasty', 'Qin Dynasty'], answer: 2, explanation: 'While started earlier, the majority of the Great Wall as we know it was built during the Ming Dynasty (1368–1644).' },
+    ]
+  },
+  canada: {
+    title: 'Canadian Citizenship',
+    questions: [
+      { question: 'What is Canada\'s system of government?', options: ['Presidential Republic', 'Federal parliamentary democracy and constitutional monarchy', 'Unitary republic', 'Parliamentary dictatorship'], answer: 1, explanation: 'Canada is a federal state with a parliamentary democracy under a constitutional monarchy — the Crown is represented by the Governor General federally and Lieutenant Governors provincially.' },
+      { question: 'Who is Canada\'s head of state?', options: ['The Prime Minister', 'The Governor General', 'The King of Canada (currently King Charles III)', 'The Senate Speaker'], answer: 2, explanation: 'The King of Canada (currently King Charles III) is Canada\'s head of state. The Governor General exercises royal powers on the King\'s behalf in Canada.' },
+      { question: 'How many provinces and territories does Canada have?', options: ['10 provinces, 2 territories', '10 provinces, 3 territories', '9 provinces, 3 territories', '12 provinces, 1 territory'], answer: 1, explanation: 'Canada has 10 provinces and 3 territories: Yukon, Northwest Territories, and Nunavut.' },
+      { question: 'What are Canada\'s two official languages?', options: ['English and Indigenous languages', 'English and French', 'French and Spanish', 'English and Inuktitut'], answer: 1, explanation: 'English and French are Canada\'s two official languages under the Official Languages Act (1969).' },
+      { question: 'When did Canada become a country?', options: ['July 1, 1776', 'July 1, 1867', 'July 1, 1931', 'April 17, 1982'], answer: 1, explanation: 'Canada became a country on July 1, 1867, through Confederation under the British North America Act. July 1st is celebrated as Canada Day.' },
+      { question: 'What document is the supreme law of Canada?', options: ['The British North America Act', 'The Charter of Rights and Freedoms', 'The Constitution Act, 1982', 'The Canadian Bill of Rights'], answer: 2, explanation: 'The Constitution Act, 1982 is the supreme law of Canada. It includes the Canadian Charter of Rights and Freedoms and the amending formula.' },
+      { question: 'Which level of government is responsible for health care delivery in Canada?', options: ['Federal government', 'Municipal government', 'Provincial/territorial governments', 'Shared equally among all levels'], answer: 2, explanation: 'Health care delivery is primarily a provincial/territorial responsibility, though the federal government sets national standards through the Canada Health Act.' },
+      { question: 'What is the name of Canada\'s national anthem?', options: ['God Save the King', 'O Canada', 'The Maple Leaf Forever', 'True North Strong'], answer: 1, explanation: '"O Canada" is the national anthem, officially adopted in 1980. It was originally composed in 1880.' },
+      { question: 'How many senators are in the Canadian Senate?', options: ['75', '100', '105', '338'], answer: 2, explanation: 'The Senate has 105 members appointed by the Governor General on the advice of the Prime Minister.' },
+      { question: 'What is the highest court in Canada?', options: ['Federal Court', 'Court of Appeal', 'Supreme Court of Canada', 'Tax Court of Canada'], answer: 2, explanation: 'The Supreme Court of Canada is the final court of appeal and the highest court in the country, with nine justices including the Chief Justice.' },
+      { question: 'The Canadian Charter of Rights and Freedoms was enacted in?', options: ['1867', '1931', '1969', '1982'], answer: 3, explanation: 'The Charter was enacted as part of the Constitution Act, 1982, signed by Queen Elizabeth II on April 17, 1982.' },
+      { question: 'What does "Confederation" refer to in Canadian history?', options: ['Canada joining the British Empire', 'The union of provinces forming Canada in 1867', 'The signing of NAFTA', 'Canada\'s independence from Britain'], answer: 1, explanation: 'Confederation refers to the union of the Province of Canada, New Brunswick, and Nova Scotia to form the Dominion of Canada on July 1, 1867.' },
+      { question: 'Which Aboriginal peoples group is NOT one of the three recognized in Canada\'s Constitution?', options: ['First Nations', 'Métis', 'Inuit', 'Algonquin'], answer: 3, explanation: 'Canada\'s Constitution recognizes three groups of Aboriginal peoples: First Nations, Métis, and Inuit. Algonquin is a First Nations group, not a separate constitutional category.' },
+      { question: 'What is the role of the Governor General?', options: ['Head of the federal government', 'Representative of the Crown in Canada', 'Leader of the House of Commons', 'Chief Justice of Canada'], answer: 1, explanation: 'The Governor General is the King\'s representative in Canada, performing constitutional duties such as granting Royal Assent to bills and swearing in the Prime Minister.' },
+      { question: 'How long must a permanent resident live in Canada before applying for citizenship?', options: ['2 out of 5 years', '3 out of 5 years', '4 out of 5 years', '5 consecutive years'], answer: 1, explanation: 'Applicants must have been physically present in Canada for at least 1,095 days (3 years) out of the 5 years before applying.' },
+    ]
+  },
+  tech: {
+    title: 'Technology & Cloud',
+    questions: [
+      { question: 'What does API stand for?', options: ['Application Programming Interface', 'Applied Protocol Integration', 'Automated Process Interpreter', 'Application Process Index'], answer: 0, explanation: 'API allows different software systems to communicate with each other.' },
+      { question: 'Which AWS service is used for object storage?', options: ['EC2', 'RDS', 'S3', 'Lambda'], answer: 2, explanation: 'Amazon S3 (Simple Storage Service) provides scalable object storage in the cloud.' },
+      { question: 'What is the purpose of Docker?', options: ['Database management', 'Application containerization', 'Network routing', 'Code version control'], answer: 1, explanation: 'Docker packages applications and dependencies into containers for consistent deployment.' },
+      { question: 'SQL stands for?', options: ['Structured Query Language', 'System Query Logic', 'Standard Queue Language', 'Secure Query Layer'], answer: 0, explanation: 'SQL (Structured Query Language) is used to manage and query relational databases.' },
+      { question: 'Git is a tool for?', options: ['Project management', 'Version control', 'Cloud deployment', 'API testing'], answer: 1, explanation: 'Git is a distributed version control system for tracking code changes.' },
+      { question: 'What does "AI" stand for?', options: ['Automated Intelligence', 'Artificial Intelligence', 'Applied Information', 'Autonomous Interaction'], answer: 1, explanation: 'Artificial Intelligence refers to machines that simulate human cognitive functions.' },
+      { question: 'Which protocol is used for secure web browsing?', options: ['FTP', 'HTTP', 'HTTPS', 'SMTP'], answer: 2, explanation: 'HTTPS (HTTP Secure) uses TLS/SSL encryption for secure data transmission.' },
+      { question: 'Microsoft Azure is a?', options: ['Programming language', 'Cloud computing platform', 'Database system', 'Operating system'], answer: 1, explanation: 'Azure is Microsoft\'s cloud computing platform offering IaaS, PaaS, and SaaS services.' },
+      { question: 'What is machine learning?', options: ['Teaching machines to physically learn', 'Algorithms that improve from experience', 'Manual computer programming', 'Hardware optimization'], answer: 1, explanation: 'Machine learning enables systems to automatically improve through experience and data.' },
+      { question: 'REST API uses which communication style?', options: ['Stateful sessions', 'Stateless requests', 'Binary protocols', 'Peer-to-peer'], answer: 1, explanation: 'REST (Representational State Transfer) is stateless — each request contains all needed information.' },
+    ]
+  }
+};
+
+// ── UTILS ──
+function $(id) { return document.getElementById(id); }
+function show(id) { $(id).style.display = 'block'; }
+function hide(id) { $(id).style.display = 'none'; }
+
+function toast(msg, duration = 2500) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// ── SETTINGS ──
+function toggleSettings() {
+  const p = $('settingsPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function getShuffle() { return $('toggleShuffle').classList.contains('on'); }
+function getExplain() { return $('toggleExplain').classList.contains('on'); }
+function getLimit() { return parseInt($('questionLimit').value); }
+
+// ── FILE HANDLING ──
+const dropZone = $('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  const file = e.dataTransfer.files[0];
+  if (file) readFile(file);
+});
+
+function handleFileUpload(input) {
+  if (input.files[0]) readFile(input.files[0]);
+}
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const ext = file.name.split('.').pop().toLowerCase();
+    try {
+      let qs;
+      if (ext === 'json') {
+        qs = JSON.parse(text);
+      } else if (ext === 'csv') {
+        qs = parseCSV(text);
+      } else {
+        qs = JSON.parse(text); // try JSON for .txt
+      }
+      validateAndStart(qs, file.name.replace(/\.[^.]+$/, ''));
+    } catch(err) {
+      toast('❌ Could not parse file. Check format.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  const start = lines[0].toLowerCase().includes('question') ? 1 : 0;
+  return lines.slice(start).map(line => {
+    const cols = line.split(',');
+    return {
+      question: cols[0]?.trim(),
+      options: [cols[1]?.trim(), cols[2]?.trim(), cols[3]?.trim(), cols[4]?.trim()].filter(Boolean),
+      answer: parseInt(cols[5]?.trim()) || 0,
+      explanation: cols[6]?.trim() || ''
+    };
+  });
+}
+
+function loadFromPaste() {
+  const text = $('pasteArea').value.trim();
+  if (!text) { toast('Paste your JSON first'); return; }
+  try {
+    const qs = JSON.parse(text);
+    validateAndStart(qs, 'Custom Quiz');
+  } catch {
+    toast('❌ Invalid JSON. Check your format.');
+  }
+}
+
+function validateAndStart(qs, title) {
+  if (!Array.isArray(qs) || qs.length === 0) { toast('❌ No questions found'); return; }
+  const valid = qs.filter(q => q.question && Array.isArray(q.options) && q.options.length >= 2);
+  if (valid.length === 0) { toast('❌ Questions must have "question" and "options" fields'); return; }
+  allQuestions = valid;
+  quizTitle = title || 'Quiz';
+  toast(`✅ ${valid.length} questions loaded!`);
+  setTimeout(startQuiz, 600);
+}
+
+// ── PRESET LOADER ──
+function loadPreset(key) {
+  const preset = PRESETS[key];
+  allQuestions = preset.questions;
+  quizTitle = preset.title;
+  toast(`✅ ${preset.questions.length} questions loaded!`);
+  setTimeout(startQuiz, 400);
+}
+
+// ── QUIZ ENGINE ──
+function startQuiz() {
+  let qs = getShuffle() ? shuffle(allQuestions) : [...allQuestions];
+  const limit = getLimit();
+  if (limit > 0) qs = qs.slice(0, limit);
+  sessionQuestions = qs;
+  currentIdx = 0;
+  score = 0;
+  userAnswers = [];
+
+  hide('loaderSection');
+  hide('resultSection');
+  hide('settingsPanel');
+  show('quizSection');
+
+  $('quizTitleDisplay').textContent = quizTitle;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = sessionQuestions[currentIdx];
+  const total = sessionQuestions.length;
+
+  $('questionNum').textContent = `QUESTION ${String(currentIdx + 1).padStart(2, '0')}`;
+  $('questionText').textContent = q.question;
+  $('quizCounter').textContent = `${currentIdx + 1} / ${total}`;
+  $('progressFill').style.width = `${(currentIdx / total) * 100}%`;
+
+  const labels = ['A', 'B', 'C', 'D', 'E'];
+  const grid = $('optionsGrid');
+  grid.innerHTML = '';
+
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="opt-label">${labels[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectAnswer(i, q.answer, q.explanation);
+    grid.appendChild(btn);
+  });
+
+  const fb = $('feedbackBox');
+  fb.style.display = 'none';
+  fb.className = 'feedback-box';
+
+  $('nextBtn').disabled = true;
+  const isLast = currentIdx === total - 1;
+  $('nextBtn').textContent = isLast ? 'Finish →' : 'Next →';
+}
+
+function selectAnswer(chosen, correct, explanation) {
+  const btns = $('optionsGrid').querySelectorAll('.option-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const isCorrect = chosen === correct;
+  if (isCorrect) score++;
+  userAnswers.push({ chosen, correct });
+
+  btns[chosen].classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) btns[correct].classList.add('correct');
+
+  if (getExplain()) {
+    const fb = $('feedbackBox');
+    fb.style.display = 'block';
+    fb.className = `feedback-box ${isCorrect ? 'correct' : 'wrong'}`;
+    if (isCorrect) {
+      fb.textContent = explanation ? `✓ Correct! ${explanation}` : '✓ Correct!';
+    } else {
+      fb.textContent = explanation ? `✗ Incorrect. ${explanation}` : `✗ Incorrect. Correct answer: Option ${['A','B','C','D'][correct]}`;
+    }
+  }
+
+  $('nextBtn').disabled = false;
+}
+
+function nextQuestion() {
+  currentIdx++;
+  if (currentIdx >= sessionQuestions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ── RESULTS ──
+function showResults() {
+  hide('quizSection');
+  show('resultSection');
+
+  const total = sessionQuestions.length;
+  const pct = Math.round((score / total) * 100);
+
+  $('scorePct').textContent = `${pct}%`;
+  $('scoreLabel').textContent = `${score} of ${total} correct`;
+  $('statCorrect').textContent = score;
+  $('statWrong').textContent = total - score;
+  $('statTotal').textContent = total;
+
+  const grade = $('scoreGrade');
+  if (pct >= 90) { grade.textContent = '🏆 Excellent!'; grade.style.cssText = 'background:rgba(106,158,90,0.15);color:var(--correct);'; }
+  else if (pct >= 70) { grade.textContent = '👍 Good Job'; grade.style.cssText = 'background:rgba(200,135,42,0.15);color:var(--accent);'; }
+  else if (pct >= 50) { grade.textContent = '📚 Keep Studying'; grade.style.cssText = 'background:rgba(160,110,60,0.15);color:#c8902a;'; }
+  else { grade.textContent = '💪 Try Again'; grade.style.cssText = 'background:rgba(184,76,50,0.15);color:var(--wrong);'; }
+
+  // Review
+  const labels = ['A','B','C','D','E'];
+  const reviewBody = $('reviewBody');
+  reviewBody.innerHTML = '';
+  userAnswers.forEach((ua, i) => {
+    const q = sessionQuestions[i];
+    const isCorrect = ua.chosen === ua.correct;
+    const div = document.createElement('div');
+    div.className = `review-item ${isCorrect ? 'correct' : 'wrong'}`;
+    div.innerHTML = `
+      <div class="review-q">${i + 1}. ${q.question}</div>
+      ${isCorrect
+        ? `<div class="review-a correct-answer">✓ ${q.options[ua.correct]}</div>`
+        : `<div class="review-a wrong-answer">✗ Your answer: ${q.options[ua.chosen]}</div>
+           <div class="review-a correct-answer">✓ Correct: ${q.options[ua.correct]}</div>`
+      }
+      ${q.explanation ? `<div class="review-a" style="margin-top:4px;font-style:italic;">${q.explanation}</div>` : ''}
+    `;
+    reviewBody.appendChild(div);
+  });
+
+  $('progressFill').style.width = '100%';
+}
+
+function retryQuiz() { startQuiz(); }
+
+function toggleReview() {
+  const b = $('reviewBody');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+}
+
+function showLoader() {
+  hide('quizSection');
+  hide('resultSection');
+  show('loaderSection');
+}
+
+// Init
+showLoader();
+</script>
+</body>
+</html>
